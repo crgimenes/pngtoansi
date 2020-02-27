@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"image/png"
-	"log"
 	"os"
+
+	"github.com/crgimenes/goconfig"
 )
 
 /*
@@ -14,6 +15,10 @@ import (
 
 chars: "█", "▀", "▄", " "
 */
+
+type config struct {
+	FileName string `cfg:"f" cfgRequired:"true"`
+}
 
 const (
 	fgColor string = "\033[38;2"
@@ -29,17 +34,22 @@ var (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("pngtoansi usage: png2ansi <pngfile>")
-		os.Exit(0)
-	}
-	file, err := os.Open(os.Args[1])
+	cfg := config{}
+	goconfig.PrefixEnv = "PNGTOANSI"
+	err := goconfig.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return
 	}
-	defer file.Close()
 
-	img, err := png.Decode(file)
+	f, err := os.Open(cfg.FileName)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	img, err := png.Decode(f)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
