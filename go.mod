@@ -1,3 +1,3 @@
-module png2ansi
+module pngtoansi
 
 go 1.13

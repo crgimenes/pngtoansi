@@ -22,14 +22,15 @@ const (
 )
 
 var (
-	fr, fg, fb, br, bg, bb uint32
-	fgCode, bgCode         string
-	lastFgCode, lastBgCode string
+	fr, fg, fb, br, bg, bb       uint32
+	lfr, lfg, lfb, lbr, lbg, lbb uint32
+	fgCode, bgCode               string
+	lastFgCode, lastBgCode       string
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Println("png2ansi usage: png2ansi <pngfile>")
+		fmt.Println("pngtoansi usage: png2ansi <pngfile>")
 		os.Exit(0)
 	}
 	file, err := os.Open(os.Args[1])
@@ -44,6 +45,13 @@ func main() {
 		os.Exit(1)
 	}
 	bound := img.Bounds()
+
+	fgCode = fmt.Sprintf("%v;%d;%d;%dm",
+		fgColor,
+		uint8(fr), uint8(fg), uint8(fb))
+	bgCode = fmt.Sprintf("%v;%d;%d;%dm",
+		bgColor,
+		uint8(br), uint8(bg), uint8(bb))
 
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
 		for x := bound.Min.X; x < bound.Max.X; x++ {
@@ -75,22 +83,39 @@ func main() {
 					uint8(r), uint8(g), uint8(b))
 			}
 
+			//-=-=-=-=-=-=-=-=-=-
 			if fr == br &&
 				fg == bg &&
 				fb == bb {
 				if lastBgCode != bgCode {
 					lastBgCode = bgCode
+					lbr, lbg, lbb = br, bg, bb
 					fmt.Print(bgCode)
 				}
 				fmt.Print(" ")
 				continue
 			}
+			//-=-=-=-=-=-=-=-=-=-
+			if lbr == fr &&
+				lbg == fg &&
+				lbb == fg &&
+				lfr == br &&
+				lfg == bg &&
+				lfb == bg &&
+				lastFgCode != "" &&
+				lastBgCode != "" {
+				fmt.Print("▄")
+				continue
+			}
+			//-=-=-=-=-=-=-=-=-=-
 			if lastFgCode != fgCode {
 				lastFgCode = fgCode
+				lfr, lfg, lfb = fr, fg, fb
 				fmt.Print(fgCode)
 			}
 			if lastBgCode != bgCode {
 				lastBgCode = bgCode
+				lbr, lbg, lbb = br, bg, bb
 				fmt.Print(bgCode)
 			}
 			fmt.Print("▀")
