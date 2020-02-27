@@ -12,7 +12,7 @@ import (
 \x1b[48;2;r;g;bm // bg
 \x1b[0m // reset
 
-chars ▀▄
+chars: "█", "▀", "▄", " "
 */
 
 const (
@@ -87,13 +87,20 @@ func main() {
 			if fr == br &&
 				fg == bg &&
 				fb == bb {
-				if lastBgCode != bgCode {
+				if lastBgCode != bgCode &&
+					lastFgCode != fgCode {
 					lastBgCode = bgCode
 					lbr, lbg, lbb = br, bg, bb
 					fmt.Print(bgCode)
 				}
-				fmt.Print(" ")
-				continue
+				if lastBgCode == bgCode {
+					fmt.Print(" ")
+					continue
+				}
+				if lastFgCode == fgCode {
+					fmt.Print("█")
+					continue
+				}
 			}
 			//-=-=-=-=-=-=-=-=-=-
 			if lbr == fr &&
