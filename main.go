@@ -92,6 +92,8 @@ func main() {
 					lastBgCode = bgCode
 					lbr, lbg, lbb = br, bg, bb
 					fmt.Print(bgCode)
+					fmt.Print(" ")
+					continue
 				}
 				if lastBgCode == bgCode {
 					fmt.Print(" ")
