@@ -4,10 +4,17 @@ Convert PNG image to ANSI art using UTF-8 characters.
 
 ## Install
 
+### Install as a Utility
+
 ```console
 go install github.com/crgimenes/pngtoansi
 ```
 
+### Install as a Golang package
+
+```console
+go get github.com/crgimenes/pngtoansi
+```
 
 ## Contributing
 
