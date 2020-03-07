@@ -36,5 +36,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	imgtoansi.Print(img)
+	p := imgtoansi.New()
+	p.Print(img)
 }

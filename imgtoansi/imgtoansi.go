@@ -19,8 +19,19 @@ const (
 	reset   string = "\033[0m"
 )
 
-func Print(img image.Image) {
+type RGB struct {
+	R, G, B uint32
+}
 
+type ImgToANSI struct {
+	DefaultColor RGB
+}
+
+func New() *ImgToANSI {
+	return &ImgToANSI{}
+}
+
+func (p *ImgToANSI) Print(img image.Image) {
 	var (
 		fr, fg, fb, br, bg, bb       uint32
 		lfr, lfg, lfb, lbr, lbg, lbb uint32
@@ -42,7 +53,9 @@ func Print(img image.Image) {
 			px := img.At(x, y)
 			r, g, b, a := px.RGBA()
 			if a == 0 {
-				r, g, b = 0xff, 0xff, 0xff
+				r = p.DefaultColor.R
+				g = p.DefaultColor.G
+				b = p.DefaultColor.B
 			}
 			if fr != r ||
 				fg != g ||
@@ -56,7 +69,9 @@ func Print(img image.Image) {
 			px = img.At(x, y+1)
 			r, g, b, a = px.RGBA()
 			if a == 0 {
-				r, g, b = 0xff, 0xff, 0xff
+				r = p.DefaultColor.R
+				g = p.DefaultColor.G
+				b = p.DefaultColor.B
 			}
 			if br != r ||
 				bg != g ||
