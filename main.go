@@ -55,5 +55,5 @@ func main() {
 		p.DefaultColor.G = uint32(g)
 		p.DefaultColor.B = uint32(b)
 	}
-	p.Print(img)
+	p.Print(img, os.Stdout)
 }

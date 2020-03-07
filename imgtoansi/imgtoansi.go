@@ -11,6 +11,7 @@ chars: "█", "▀", "▄", " "
 import (
 	"fmt"
 	"image"
+	"io"
 )
 
 const (
@@ -31,7 +32,7 @@ func New() *ImgToANSI {
 	return &ImgToANSI{}
 }
 
-func (p *ImgToANSI) Print(img image.Image) {
+func (p *ImgToANSI) Print(img image.Image, w io.Writer) {
 	var (
 		fr, fg, fb, br, bg, bb       uint32
 		lfr, lfg, lfb, lbr, lbg, lbb uint32
@@ -90,16 +91,16 @@ func (p *ImgToANSI) Print(img image.Image) {
 					lastFgCode != fgCode {
 					lastBgCode = bgCode
 					lbr, lbg, lbb = br, bg, bb
-					fmt.Print(bgCode)
-					fmt.Print(" ")
+					fmt.Fprint(w, bgCode)
+					fmt.Fprint(w, " ")
 					continue
 				}
 				if lastBgCode == bgCode {
-					fmt.Print(" ")
+					fmt.Fprint(w, " ")
 					continue
 				}
 				if lastFgCode == fgCode {
-					fmt.Print("█")
+					fmt.Fprint(w, "█")
 					continue
 				}
 			}
@@ -112,23 +113,23 @@ func (p *ImgToANSI) Print(img image.Image) {
 				lfb == bg &&
 				lastFgCode != "" &&
 				lastBgCode != "" {
-				fmt.Print("▄")
+				fmt.Fprint(w, "▄")
 				continue
 			}
 			//-=-=-=-=-=-=-=-=-=-
 			if lastFgCode != fgCode {
 				lastFgCode = fgCode
 				lfr, lfg, lfb = fr, fg, fb
-				fmt.Print(fgCode)
+				fmt.Fprint(w, fgCode)
 			}
 			if lastBgCode != bgCode {
 				lastBgCode = bgCode
 				lbr, lbg, lbb = br, bg, bb
-				fmt.Print(bgCode)
+				fmt.Fprint(w, bgCode)
 			}
-			fmt.Print("▀")
+			fmt.Fprint(w, "▀")
 		}
-		fmt.Println("")
+		fmt.Fprintln(w, "")
 	}
-	fmt.Println(reset)
+	fmt.Fprintln(w, reset)
 }
