@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"os"
 )
 
 const (
@@ -32,7 +33,11 @@ func New() *ImgToANSI {
 	return &ImgToANSI{}
 }
 
-func (p *ImgToANSI) Print(img image.Image, w io.Writer) {
+func (p *ImgToANSI) Print(img image.Image) {
+	p.Fprint(os.Stdout, img)
+}
+
+func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) {
 	var (
 		fr, fg, fb, br, bg, bb       uint32
 		lfr, lfg, lfb, lbr, lbg, lbb uint32
