@@ -6,9 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"pngtoansi/imgtoansi"
-
 	"github.com/crgimenes/goconfig"
+	"github.com/crgimenes/pngtoansi/imgtoansi"
 )
 
 type config struct {
