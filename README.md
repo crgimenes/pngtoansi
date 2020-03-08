@@ -1,5 +1,10 @@
 # pngtoansi
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/crgimenes/pngtoansi)](https://goreportcard.com/report/github.com/crgimenes/pngtoansi)
+[![GoDoc](https://godoc.org/github.com/crgimenes/pngtoansi?status.png)](https://godoc.org/github.com/crgimenes/pngtoansi)
+[![Go project version](https://badge.fury.io/go/github.com%2Fcrgimenes%2Fpngtogo.svg)](https://badge.fury.io/go/github.com%2Fcrgimenes%2Fpngtoansi)
+[![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)](https://tldrlegal.com/license/mit-license)
+
 Convert PNG image to ANSI art using UTF-8 characters.
 
 ## Install
