@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"image/png"
 	"os"
-	"strconv"
 
 	"github.com/crgimenes/goconfig"
-	"github.com/crgimenes/pngtoansi/imgtoansi"
+	"github.com/crgimenes/pngtoansi/pngtoansi"
 )
 
 type config struct {
@@ -24,35 +22,10 @@ func main() {
 		return
 	}
 
-	f, err := os.Open(cfg.FileName)
+	p := pngtoansi.New()
+	err = p.PrintFile(cfg.FileName, cfg.RGB)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	defer f.Close()
-
-	img, err := png.Decode(f)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	p := imgtoansi.New()
-
-	if cfg.RGB != "" {
-		rgb, err := strconv.ParseUint(cfg.RGB, 16, 64)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		r := uint8(rgb >> 16)
-		g := uint8(rgb >> 8)
-		b := uint8(rgb)
-
-		p.DefaultColor.R = uint32(r)
-		p.DefaultColor.G = uint32(g)
-		p.DefaultColor.B = uint32(b)
-	}
-	p.Print(img)
 }

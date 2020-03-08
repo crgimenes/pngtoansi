@@ -1,4 +1,4 @@
-package imgtoansi
+package pngtoansi
 
 /*
 \x1b[38;2;r;g;bm // fg
@@ -11,8 +11,10 @@ chars: "█", "▀", "▄", " "
 import (
 	"fmt"
 	"image"
+	"image/png"
 	"io"
 	"os"
+	"strconv"
 )
 
 const (
@@ -31,6 +33,47 @@ type ImgToANSI struct {
 
 func New() *ImgToANSI {
 	return &ImgToANSI{}
+}
+
+func (p *ImgToANSI) SetRGB(rgb string) error {
+	x, err := strconv.ParseUint(rgb, 16, 64)
+	if err != nil {
+		return err
+	}
+
+	r := uint8(rgb >> 16)
+	g := uint8(rgb >> 8)
+	b := uint8(rgb)
+
+	p.DefaultColor.R = uint32(r)
+	p.DefaultColor.G = uint32(g)
+	p.DefaultColor.B = uint32(b)
+	return nil
+}
+
+func (p *ImgToANSI) PrintFile(fileName string, defaultRGB string) error {
+	return p.FprintFile(os.Stdout, fileName, defaultRGB)
+}
+
+func (p *ImgToANSI) FprintFile(w io.Writer, fileName string, defaultRGB string) error {
+	f, err := os.Open(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	img, err := png.Decode(f)
+	if err != nil {
+		return err
+	}
+
+	if defaultRGB != "" {
+		err = p.SetRGB(defaultRGB)
+		if err != nil {
+			return err
+		}
+	}
+	p.Fprint(w, img)
 }
 
 func (p *ImgToANSI) Print(img image.Image) {
