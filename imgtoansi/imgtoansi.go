@@ -38,6 +38,13 @@ func New() *ImgToANSI {
 	return &ImgToANSI{}
 }
 
+func closer(c io.Closer) {
+	err := c.Close()
+	if err != nil {
+		fmt.Println("error closing file", err)
+	}
+}
+
 // SetRGB update RGB values in current instance of ImgToANSI
 func (p *ImgToANSI) SetRGB(rgb string) error {
 	x, err := strconv.ParseUint(rgb, 16, 64)
@@ -66,7 +73,7 @@ func (p *ImgToANSI) FprintFile(w io.Writer, fileName string, defaultRGB string) 
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer closer(f)
 
 	img, err := png.Decode(f)
 	if err != nil {
