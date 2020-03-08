@@ -23,18 +23,22 @@ const (
 	reset   string = "\033[0m"
 )
 
+// RGB color
 type RGB struct {
 	R, G, B uint32
 }
 
+// ImgToANSI holds module parameters
 type ImgToANSI struct {
 	DefaultColor RGB
 }
 
+// New create a new instance of ImgToANSI
 func New() *ImgToANSI {
 	return &ImgToANSI{}
 }
 
+// SetRGB update RGB values in current instance of ImgToANSI
 func (p *ImgToANSI) SetRGB(rgb string) error {
 	x, err := strconv.ParseUint(rgb, 16, 64)
 	if err != nil {
@@ -51,10 +55,12 @@ func (p *ImgToANSI) SetRGB(rgb string) error {
 	return nil
 }
 
+// PrintFile print a png file to the stdout using ANSI codes
 func (p *ImgToANSI) PrintFile(fileName string, defaultRGB string) error {
 	return p.FprintFile(os.Stdout, fileName, defaultRGB)
 }
 
+// FprintFile write a file to the Stdout using ANSI codes
 func (p *ImgToANSI) FprintFile(w io.Writer, fileName string, defaultRGB string) error {
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -77,10 +83,12 @@ func (p *ImgToANSI) FprintFile(w io.Writer, fileName string, defaultRGB string) 
 	return nil
 }
 
+// Print prints a image in the stdout using ANSI codes
 func (p *ImgToANSI) Print(img image.Image) {
 	p.Fprint(os.Stdout, img)
 }
 
+// Fprint prints write a image to a writer using ANSI codes
 func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) {
 	var (
 		fr, fg, fb, br, bg, bb       uint32
