@@ -1,4 +1,4 @@
-package pngtoansi
+package imgtoansi
 
 /*
 \x1b[38;2;r;g;bm // fg
@@ -41,9 +41,9 @@ func (p *ImgToANSI) SetRGB(rgb string) error {
 		return err
 	}
 
-	r := uint8(rgb >> 16)
-	g := uint8(rgb >> 8)
-	b := uint8(rgb)
+	r := uint8(x >> 16)
+	g := uint8(x >> 8)
+	b := uint8(x)
 
 	p.DefaultColor.R = uint32(r)
 	p.DefaultColor.G = uint32(g)
@@ -74,6 +74,7 @@ func (p *ImgToANSI) FprintFile(w io.Writer, fileName string, defaultRGB string) 
 		}
 	}
 	p.Fprint(w, img)
+	return nil
 }
 
 func (p *ImgToANSI) Print(img image.Image) {
