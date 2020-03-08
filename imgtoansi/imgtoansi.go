@@ -104,12 +104,14 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 		err                          error
 	)
 
+	const ANSIColor = "%v;%d;%d;%dm"
+
 	bound := img.Bounds()
 
-	fgCode = fmt.Sprintf("%v;%d;%d;%dm",
+	fgCode = fmt.Sprintf(ANSIColor,
 		fgColor,
 		uint8(fr), uint8(fg), uint8(fb))
-	bgCode = fmt.Sprintf("%v;%d;%d;%dm",
+	bgCode = fmt.Sprintf(ANSIColor,
 		bgColor,
 		uint8(br), uint8(bg), uint8(bb))
 
@@ -126,7 +128,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				fg != g ||
 				fb != b {
 				fr, fg, fb = r, g, b
-				fgCode = fmt.Sprintf("%v;%d;%d;%dm",
+				fgCode = fmt.Sprintf(ANSIColor,
 					fgColor,
 					uint8(r), uint8(g), uint8(b))
 			}
@@ -142,7 +144,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				bg != g ||
 				bb != b {
 				br, bg, bb = r, g, b
-				bgCode = fmt.Sprintf("%v;%d;%d;%dm",
+				bgCode = fmt.Sprintf(ANSIColor,
 					bgColor,
 					uint8(r), uint8(g), uint8(b))
 			}
