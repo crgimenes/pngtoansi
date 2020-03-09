@@ -95,6 +95,17 @@ func (p *ImgToANSI) Print(img image.Image) error {
 	return p.Fprint(os.Stdout, img)
 }
 
+func (p *ImgToANSI) pxColor(x, y int, img image.Image) (r, g, b uint32) {
+	px := img.At(x, y)
+	r, g, b, a := px.RGBA()
+	if a == 0 {
+		r = p.DefaultColor.R
+		g = p.DefaultColor.G
+		b = p.DefaultColor.B
+	}
+	return r, g, b
+}
+
 // Fprint prints write a image to a writer using ANSI codes
 func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 	var (
@@ -116,13 +127,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
 		for x := bound.Min.X; x < bound.Max.X; x++ {
-			px := img.At(x, y)
-			r, g, b, a := px.RGBA()
-			if a == 0 {
-				r = p.DefaultColor.R
-				g = p.DefaultColor.G
-				b = p.DefaultColor.B
-			}
+			r, g, b := p.pxColor(x, y, img)
 			if fr != r ||
 				fg != g ||
 				fb != b {
@@ -132,13 +137,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 					uint8(r), uint8(g), uint8(b))
 			}
 
-			px = img.At(x, y+1)
-			r, g, b, a = px.RGBA()
-			if a == 0 {
-				r = p.DefaultColor.R
-				g = p.DefaultColor.G
-				b = p.DefaultColor.B
-			}
+			r, g, b = p.pxColor(x, y+1, img)
 			if br != r ||
 				bg != g ||
 				bb != b {
