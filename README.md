@@ -38,7 +38,7 @@ pngtoansi -f ./examples/test-01.png -rgb FFFFFF
 
 ```golang
 ...
-p := imgtoansi.New()
+p := pngtoansi.New()
 err = p.PrintFile("./examples/gopher.png", "FFFFFF")
 if err != nil {
 	fmt.Println(err)
