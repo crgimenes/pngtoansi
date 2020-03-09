@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/crgimenes/goconfig"
-	"github.com/crgimenes/pngtoansi/imgtoansi"
+	"github.com/crgimenes/pngtoansi"
 )
 
 type config struct {
@@ -22,7 +22,7 @@ func main() {
 		return
 	}
 
-	p := imgtoansi.New()
+	p := pngtoansi.New()
 	err = p.PrintFile(cfg.FileName, cfg.RGB)
 	if err != nil {
 		fmt.Println(err)

@@ -1,4 +1,4 @@
-package imgtoansi
+package pngtoansi
 
 /*
 \x1b[38;2;r;g;bm // fg

@@ -8,4 +8,4 @@
 // the last line of the final image will use the default color to generate
 // an extra line.
 
-package main
+package pngtoansi

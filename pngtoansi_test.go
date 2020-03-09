@@ -1,4 +1,4 @@
-package imgtoansi
+package pngtoansi
 
 import (
 	"bytes"
@@ -121,7 +121,7 @@ func TestImgToANSI_PrintFile(t *testing.T) {
 		{
 			name: "success",
 			args: args{
-				fileName:   "../examples/debian.png",
+				fileName:   "./examples/debian.png",
 				defaultRGB: "",
 			},
 			wantErr: false,
@@ -129,7 +129,7 @@ func TestImgToANSI_PrintFile(t *testing.T) {
 		{
 			name: "success 2",
 			args: args{
-				fileName:   "../examples/debian.png",
+				fileName:   "./examples/debian.png",
 				defaultRGB: "FFFFFF",
 			},
 			wantErr: false,
@@ -137,7 +137,7 @@ func TestImgToANSI_PrintFile(t *testing.T) {
 		{
 			name: "success 3",
 			args: args{
-				fileName:   "../examples/test-01.png",
+				fileName:   "./examples/test-01.png",
 				defaultRGB: "FFFFFF",
 			},
 			wantErr: false,
@@ -145,7 +145,7 @@ func TestImgToANSI_PrintFile(t *testing.T) {
 		{
 			name: "error",
 			args: args{
-				fileName:   "../examples/test-01.png",
+				fileName:   "./examples/test-01.png",
 				defaultRGB: "not hexa",
 			},
 			wantErr: true,
@@ -188,7 +188,7 @@ func TestImgToANSI_FprintFile(t *testing.T) {
 		{
 			name: "success",
 			args: args{
-				fileName: "../examples/test-02.png",
+				fileName: "./examples/test-02.png",
 			},
 			wantW: "\x1b[48;2;0;0;0m \x1b[38;2;255;255;255m▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀\n\x1b[0m\n",
 		},
@@ -211,7 +211,7 @@ func TestImgToANSI_FprintFile(t *testing.T) {
 }
 
 func TestImgToANSI_Fprint(t *testing.T) {
-	f, err := os.Open("../examples/test-02.png")
+	f, err := os.Open("./examples/test-02.png")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestImgToANSI_Fprint(t *testing.T) {
 
 func Example_PrintFile() {
 	p := New()
-	err := p.PrintFile("../examples/gopher.png", "FFFFFF")
+	err := p.PrintFile("./examples/gopher.png", "FFFFFF")
 	if err != nil {
 		fmt.Println(err)
 		return
