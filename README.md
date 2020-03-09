@@ -7,6 +7,10 @@
 
 Convert PNG image to ANSI art using UTF-8 characters.
 
+
+For best results it is necessary to use a font compatible with characters "█", "▀", "▄", I recommend the [source code pro](https://github.com/adobe-fonts/source-code-pro) fount.
+
+
 ## Install
 
 ### Install as a Utility
@@ -33,6 +37,18 @@ Adjusted the background color. It is possible to change the color used to replac
 
 ```console
 pngtoansi -f ./examples/test-01.png -rgb FFFFFF
+```
+
+### Golang example
+
+```golang
+...
+p := imgtoansi.New()
+err = p.PrintFile("./examples/gopher.png", "FFFFFF")
+if err != nil {
+	fmt.Println(err)
+	return
+}
 ```
 
 ## Contributing
