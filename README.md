@@ -21,6 +21,20 @@ go install github.com/crgimenes/pngtoansi
 go get github.com/crgimenes/pngtoansi
 ```
 
+## Examples
+
+### Convert PNG to ANSI in the terminal
+
+```console
+pngtoansi -f ./examples/gopher.png
+```
+
+Adjusted the background color. It is possible to change the color used to replace the transparent background using the *-rgb* parameter.
+
+```console
+pngtoansi -f ./examples/test-01.png -rgb FFFFFF
+```
+
 ## Contributing
 
 - Fork the repo on GitHub
