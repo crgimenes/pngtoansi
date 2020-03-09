@@ -2,6 +2,7 @@ package imgtoansi
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -266,5 +267,14 @@ func TestImgToANSI_Fprint(t *testing.T) {
 				t.Errorf("ImgToANSI.Fprint() = %v, want %v", gotW, tt.wantW)
 			}
 		})
+	}
+}
+
+func Example_PrintFile() {
+	p := New()
+	err := p.PrintFile("../examples/gopher.png", "FFFFFF")
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 }
