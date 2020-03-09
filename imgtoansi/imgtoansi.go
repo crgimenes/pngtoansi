@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	fgColor string = "\033[38;2"
-	bgColor string = "\033[48;2"
-	reset   string = "\033[0m"
+	fgColor   = "\033[38;2"
+	bgColor   = "\033[48;2"
+	reset     = "\033[0m"
+	ansiColor = "%v;%d;%d;%dm"
 )
 
 // RGB color
@@ -104,14 +105,12 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 		err                          error
 	)
 
-	const ANSIColor = "%v;%d;%d;%dm"
-
 	bound := img.Bounds()
 
-	fgCode = fmt.Sprintf(ANSIColor,
+	fgCode = fmt.Sprintf(ansiColor,
 		fgColor,
 		uint8(fr), uint8(fg), uint8(fb))
-	bgCode = fmt.Sprintf(ANSIColor,
+	bgCode = fmt.Sprintf(ansiColor,
 		bgColor,
 		uint8(br), uint8(bg), uint8(bb))
 
@@ -128,7 +127,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				fg != g ||
 				fb != b {
 				fr, fg, fb = r, g, b
-				fgCode = fmt.Sprintf(ANSIColor,
+				fgCode = fmt.Sprintf(ansiColor,
 					fgColor,
 					uint8(r), uint8(g), uint8(b))
 			}
@@ -144,7 +143,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				bg != g ||
 				bb != b {
 				br, bg, bb = r, g, b
-				bgCode = fmt.Sprintf(ANSIColor,
+				bgCode = fmt.Sprintf(ansiColor,
 					bgColor,
 					uint8(r), uint8(g), uint8(b))
 			}
