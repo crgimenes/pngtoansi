@@ -1,10 +1,5 @@
 # pngtoansi
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/crgimenes/pngtoansi)](https://goreportcard.com/report/github.com/crgimenes/pngtoansi)
-[![GoDoc](https://pkg.go.dev/github.com/crgimenes/pngtoansi/imgtoansi?status.png)](https://pkg.go.dev/github.com/crgimenes/pngtoansi/imgtoansi?tab=doc)
-[![Go project version](https://badge.fury.io/go/github.com%2Fcrgimenes%2Fpngtogo.svg)](https://badge.fury.io/go/github.com%2Fcrgimenes%2Fpngtoansi)
-[![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)](https://tldrlegal.com/license/mit-license)
-
 Convert PNG image to ANSI art using UTF-8 characters.
 
 
@@ -16,7 +11,7 @@ For best results it is necessary to use a font compatible with characters "█",
 ### Install as a Utility
 
 ```console
-go install github.com/crgimenes/pngtoansi
+go install github.com/crgimenes/pngtoansi/cmd/pngtoansi 
 ```
 
 ### Install as a Golang package
