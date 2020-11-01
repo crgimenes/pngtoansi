@@ -121,23 +121,15 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
 		for x := bound.Min.X; x < bound.Max.X; x++ {
 
-			r, g, b := p.pxColor(x, y, img)
+			fr, fg, fb := p.pxColor(x, y, img)
 			fgCode = fmt.Sprintf(ansiColor,
 				fgColor,
-				uint8(r), uint8(g), uint8(b))
+				uint8(fr), uint8(fg), uint8(fb))
 
-			r, g, b = p.pxColor(x, y+1, img)
+			br, bg, bb := p.pxColor(x, y+1, img)
 			bgCode = fmt.Sprintf(ansiColor,
 				bgColor,
-				uint8(r), uint8(g), uint8(b))
-
-			if lastFgCode != fgCode {
-				_, err = fmt.Fprint(w, fgCode)
-				if err != nil {
-					return err
-				}
-				lastFgCode = fgCode
-			}
+				uint8(br), uint8(bg), uint8(bb))
 
 			if lastBgCode != bgCode {
 				_, err = fmt.Fprint(w, bgCode)
@@ -145,6 +137,26 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 					return err
 				}
 				lastBgCode = bgCode
+			}
+
+			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+			if fr == br &&
+				fg == bg &&
+				fb == bb {
+				_, err = fmt.Fprint(w, " ")
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+			if lastFgCode != fgCode {
+				_, err = fmt.Fprint(w, fgCode)
+				if err != nil {
+					return err
+				}
+				lastFgCode = fgCode
 			}
 
 			_, err = fmt.Fprint(w, "▀")
