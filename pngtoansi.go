@@ -131,6 +131,8 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				bgColor,
 				uint8(br), uint8(bg), uint8(bb))
 
+			//-=-=-=-=-=-=-=-=-=-=-=-=
+
 			if lastBgCode != bgCode {
 				_, err = fmt.Fprint(w, bgCode)
 				if err != nil {
