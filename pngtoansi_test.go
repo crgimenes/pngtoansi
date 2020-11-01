@@ -264,7 +264,7 @@ func TestImgToANSI_Fprint(t *testing.T) {
 			w := &bytes.Buffer{}
 			p.Fprint(w, tt.args.img)
 			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("ImgToANSI.Fprint() = %v, want %v", gotW, tt.wantW)
+				t.Errorf("ImgToANSI.Fprint() = %q, want %q", gotW, tt.wantW)
 			}
 		})
 	}
