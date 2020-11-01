@@ -108,112 +108,43 @@ func (p *ImgToANSI) pxColor(x, y int, img image.Image) (r, g, b uint32) {
 
 // Fprint prints write a image to a writer using ANSI codes
 func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
-	var (
-		fr, fg, fb, br, bg, bb       uint32
-		lfr, lfg, lfb, lbr, lbg, lbb uint32
-		fgCode, bgCode               string
-		lastFgCode, lastBgCode       string
-		err                          error
-	)
-
 	bound := img.Bounds()
 
-	fgCode = fmt.Sprintf(ansiColor,
-		fgColor,
-		uint8(fr), uint8(fg), uint8(fb))
-	bgCode = fmt.Sprintf(ansiColor,
-		bgColor,
-		uint8(br), uint8(bg), uint8(bb))
+	var (
+		fgCode string
+		bgCode string
+		err    error
+	)
 
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
 		for x := bound.Min.X; x < bound.Max.X; x++ {
+
 			r, g, b := p.pxColor(x, y, img)
-			if fr != r ||
-				fg != g ||
-				fb != b {
-				fr, fg, fb = r, g, b
-				fgCode = fmt.Sprintf(ansiColor,
-					fgColor,
-					uint8(r), uint8(g), uint8(b))
-			}
+			fgCode = fmt.Sprintf(ansiColor,
+				fgColor,
+				uint8(r), uint8(g), uint8(b))
 
 			r, g, b = p.pxColor(x, y+1, img)
-			if br != r ||
-				bg != g ||
-				bb != b {
-				br, bg, bb = r, g, b
-				bgCode = fmt.Sprintf(ansiColor,
-					bgColor,
-					uint8(r), uint8(g), uint8(b))
+			bgCode = fmt.Sprintf(ansiColor,
+				bgColor,
+				uint8(r), uint8(g), uint8(b))
+
+			_, err = fmt.Fprint(w, fgCode)
+			if err != nil {
+				return err
 			}
 
-			//-=-=-=-=-=-=-=-=-=-
-			if fr == br &&
-				fg == bg &&
-				fb == bb {
-				if lastBgCode != bgCode &&
-					lastFgCode != fgCode {
-					lastBgCode = bgCode
-					lbr, lbg, lbb = br, bg, bb
-					_, err = fmt.Fprint(w, bgCode, " ")
-					if err != nil {
-						return err
-					}
-					continue
-				}
-				if lastBgCode == bgCode {
-					_, err = fmt.Fprint(w, " ")
-					if err != nil {
-						return err
-					}
-					continue
-				}
-				if lastFgCode == fgCode {
-					_, err = fmt.Fprint(w, "█")
-					if err != nil {
-						return err
-					}
-					continue
-				}
+			_, err = fmt.Fprint(w, bgCode)
+			if err != nil {
+				return err
 			}
-			//-=-=-=-=-=-=-=-=-=-
-			if lbr == fr &&
-				lbg == fg &&
-				lbb == fg &&
-				lfr == br &&
-				lfg == bg &&
-				lfb == bg &&
-				lastFgCode != "" &&
-				lastBgCode != "" {
-				_, err = fmt.Fprint(w, "▄")
-				if err != nil {
-					return err
-				}
-				continue
-			}
-			//-=-=-=-=-=-=-=-=-=-
-			if lastFgCode != fgCode {
-				lastFgCode = fgCode
-				lfr, lfg, lfb = fr, fg, fb
-				_, err = fmt.Fprint(w, fgCode)
-				if err != nil {
-					return err
-				}
-			}
-			if lastBgCode != bgCode {
-				lastBgCode = bgCode
-				lbr, lbg, lbb = br, bg, bb
-				_, err = fmt.Fprint(w, bgCode)
-				if err != nil {
-					return err
-				}
-			}
+
 			_, err = fmt.Fprint(w, "▀")
 			if err != nil {
 				return err
 			}
 		}
-		_, err = fmt.Fprintln(w, "")
+		_, err = fmt.Fprintln(w, reset)
 		if err != nil {
 			return err
 		}
