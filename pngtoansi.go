@@ -17,11 +17,12 @@ import (
 	"strconv"
 )
 
-const (
+var (
 	fgColor   = "\033[38;2"
 	bgColor   = "\033[48;2"
-	reset     = "\033[0m"
 	ansiColor = "%v;%d;%d;%dm"
+	reset     = []byte("\033[m")
+	resetln   = []byte("\033[m\r\n")
 )
 
 // RGB color
@@ -131,10 +132,10 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				bgColor,
 				uint8(br), uint8(bg), uint8(bb))
 
-			//-=-=-=-=-=-=-=-=-=-=-=-=
+			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 			if lastBgCode != bgCode {
-				_, err = fmt.Fprint(w, bgCode)
+				_, err = w.Write([]byte(bgCode))
 				if err != nil {
 					return err
 				}
@@ -145,7 +146,7 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 			if fr == br &&
 				fg == bg &&
 				fb == bb {
-				_, err = fmt.Fprint(w, " ")
+				_, err = w.Write([]byte(" "))
 				if err != nil {
 					return err
 				}
@@ -154,19 +155,19 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 			if lastFgCode != fgCode {
-				_, err = fmt.Fprint(w, fgCode)
+				_, err = w.Write([]byte(fgCode))
 				if err != nil {
 					return err
 				}
 				lastFgCode = fgCode
 			}
 
-			_, err = fmt.Fprint(w, "▀")
+			_, err = w.Write([]byte("▀"))
 			if err != nil {
 				return err
 			}
 		}
-		_, err = fmt.Fprintln(w, reset)
+		_, err = w.Write(resetln)
 		if err != nil {
 			return err
 		}
