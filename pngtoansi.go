@@ -165,12 +165,11 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 			}
 		}
 		_, err = fmt.Fprintln(w, reset)
-		lastFgCode = ""
-		lastBgCode = ""
 		if err != nil {
 			return err
 		}
+		lastFgCode = ""
+		lastBgCode = ""
 	}
-	_, err = fmt.Fprintln(w, reset)
-	return err
+	return nil
 }
