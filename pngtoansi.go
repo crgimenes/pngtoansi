@@ -111,9 +111,11 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 	bound := img.Bounds()
 
 	var (
-		fgCode string
-		bgCode string
-		err    error
+		fgCode     string
+		bgCode     string
+		lastBgCode string
+		lastFgCode string
+		err        error
 	)
 
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
@@ -129,14 +131,20 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 				bgColor,
 				uint8(r), uint8(g), uint8(b))
 
-			_, err = fmt.Fprint(w, fgCode)
-			if err != nil {
-				return err
+			if lastFgCode != fgCode {
+				_, err = fmt.Fprint(w, fgCode)
+				if err != nil {
+					return err
+				}
+				lastFgCode = fgCode
 			}
 
-			_, err = fmt.Fprint(w, bgCode)
-			if err != nil {
-				return err
+			if lastBgCode != bgCode {
+				_, err = fmt.Fprint(w, bgCode)
+				if err != nil {
+					return err
+				}
+				lastBgCode = bgCode
 			}
 
 			_, err = fmt.Fprint(w, "▀")
@@ -145,6 +153,8 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 			}
 		}
 		_, err = fmt.Fprintln(w, reset)
+		lastFgCode = ""
+		lastBgCode = ""
 		if err != nil {
 			return err
 		}
