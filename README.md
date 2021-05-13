@@ -2,9 +2,7 @@
 
 Convert PNG image to ANSI art using UTF-8 characters.
 
-
-For best results it is necessary to use a font compatible with characters "█", "▀", "▄", I recommend the [source code pro](https://github.com/adobe-fonts/source-code-pro) fount.
-
+For best results it is necessary to use a font compatible with characters "█", "▀", "▄", I recommend the [source code pro](https://github.com/adobe-fonts/source-code-pro) fount or even better use the [3270font](https://github.com/rbanffy/3270font).
 
 ## Install
 
