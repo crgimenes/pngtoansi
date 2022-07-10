@@ -6,7 +6,7 @@ builds:
   - id: pngtoansi
     main: ./cmd/pngtoansi/main.go
     ldflags: -s -w
-    binary: exhibit
+    binary: pngtoansi
     env:
       - CGO_ENABLED=0
     goos:
