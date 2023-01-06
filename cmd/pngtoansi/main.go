@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	goconfig "crg.eti.br/go/config"
 	"crg.eti.br/go/pngtoansi"
-	"github.com/crgimenes/goconfig"
 )
 
 type config struct {
