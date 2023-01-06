@@ -9,13 +9,13 @@ For best results it is necessary to use a font compatible with characters "█",
 ### Install as a Utility
 
 ```console
-go install github.com/crgimenes/pngtoansi/cmd/pngtoansi 
+go install crg.eti.br/go/pngtoansi/cmd/pngtoansi 
 ```
 
 ### Install as a Golang package
 
 ```console
-go get github.com/crgimenes/pngtoansi
+go get crg.eti.br/go/pngtoansi
 ```
 
 ## Examples

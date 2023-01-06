@@ -1,4 +1,4 @@
-module github.com/crgimenes/pngtoansi
+module crg.eti.br/go/pngtoansi
 
 go 1.18
 
