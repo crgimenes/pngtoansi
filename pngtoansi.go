@@ -18,11 +18,8 @@ import (
 )
 
 var (
-	fgColor   = "\033[38;2"
-	bgColor   = "\033[48;2"
-	ansiColor = "%v;%d;%d;%dm"
-	reset     = []byte("\033[m")
-	resetln   = []byte("\033[m\r\n")
+	reset   = []byte("\033[m")
+	resetln = []byte("\033[m\r\n")
 )
 
 // RGB color
@@ -107,60 +104,158 @@ func (p *ImgToANSI) pxColor(x, y int, img image.Image) (r, g, b uint32) {
 	return r, g, b
 }
 
+/*
+VGA 4 bit ANSI color codes
+Name    			fg  	bg		RGB
+Black				30		40		0,0,0
+Red					31		41		170,0,0
+Green				32		42		0,170,0
+Yellow				33		43		170,85,0
+Blue				34		44		0,0,170
+Magenta				35		45		170,0,170
+Cyan				36		46		0,170,170
+White				37		47		170,170,170
+Bright Black		90		100		85,85,85
+Bright Red			91		101		255,85,85
+Bright Green		92		102		85,255,85
+Bright Yellow		93		103		255,255,85
+Bright Blue			94		104		85,85,255
+Bright Magenta		95		105		255,85,255
+Bright Cyan			96		106		85,255,255
+Bright White		97		107  	255,255,255
+*/
+
+// RGB2VGAFg convert RGB to 4 bit VGA ANSI colorcode (foreground)
+// or return false if no match found
+func RGB2VGAFg(r, g, b uint32) (bool, int) {
+	red := r >> 8
+	green := g >> 8
+	blue := b >> 8
+	switch {
+	case red == 0 && green == 0 && blue == 0:
+		return true, 30
+	case red == 170 && green == 0 && blue == 0:
+		return true, 31
+	case red == 0 && green == 170 && blue == 0:
+		return true, 32
+	case red == 170 && green == 85 && blue == 0:
+		return true, 33
+	case red == 0 && green == 0 && blue == 170:
+		return true, 34
+	case red == 170 && green == 0 && blue == 170:
+		return true, 35
+	case red == 0 && green == 170 && blue == 170:
+		return true, 36
+	case red == 170 && green == 170 && blue == 170:
+		return true, 37
+	case red == 85 && green == 85 && blue == 85:
+		return true, 90
+	case red == 255 && green == 85 && blue == 85:
+		return true, 91
+	case red == 85 && green == 255 && blue == 85:
+		return true, 92
+	case red == 255 && green == 255 && blue == 85:
+		return true, 93
+	case red == 85 && green == 85 && blue == 255:
+		return true, 94
+	case red == 255 && green == 85 && blue == 255:
+		return true, 95
+	case red == 85 && green == 255 && blue == 255:
+		return true, 96
+	case red == 255 && green == 255 && blue == 255:
+		return true, 97
+	default:
+		return false, 0
+	}
+}
+
+// RGB2VGABg convert RGB to 4 bit VGA ANSI colorcode (background)
+// or return false if no match found
+func RGB2VGABg(r, g, b uint32) (bool, int) {
+	red := r >> 8
+	green := g >> 8
+	blue := b >> 8
+	switch {
+	case red == 0 && green == 0 && blue == 0:
+		return true, 40
+	case red == 170 && green == 0 && blue == 0:
+		return true, 41
+	case red == 0 && green == 170 && blue == 0:
+		return true, 42
+	case red == 170 && green == 85 && blue == 0:
+		return true, 43
+	case red == 0 && green == 0 && blue == 170:
+		return true, 44
+	case red == 170 && green == 0 && blue == 170:
+		return true, 45
+	case red == 0 && green == 170 && blue == 170:
+		return true, 46
+	case red == 170 && green == 170 && blue == 170:
+		return true, 47
+	case red == 85 && green == 85 && blue == 85:
+		return true, 100
+	case red == 255 && green == 85 && blue == 85:
+		return true, 101
+	case red == 85 && green == 255 && blue == 85:
+		return true, 102
+	case red == 255 && green == 255 && blue == 85:
+		return true, 103
+	case red == 85 && green == 85 && blue == 255:
+		return true, 104
+	case red == 255 && green == 85 && blue == 255:
+		return true, 105
+	case red == 85 && green == 255 && blue == 255:
+		return true, 106
+	case red == 255 && green == 255 && blue == 255:
+		return true, 107
+	default:
+		return false, 0
+	}
+}
+
 // Fprint prints write a image to a writer using ANSI codes
 func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 	bound := img.Bounds()
 
 	var (
-		fgCode     string
-		bgCode     string
-		lastBgCode string
-		lastFgCode string
-		err        error
+		fgCode string
+		bgCode string
+		err    error
 	)
 
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
 		for x := bound.Min.X; x < bound.Max.X; x++ {
 
 			fr, fg, fb := p.pxColor(x, y, img)
-			fgCode = fmt.Sprintf(ansiColor,
-				fgColor,
-				uint8(fr), uint8(fg), uint8(fb))
-
 			br, bg, bb := p.pxColor(x, y+1, img)
-			bgCode = fmt.Sprintf(ansiColor,
-				bgColor,
-				uint8(br), uint8(bg), uint8(bb))
 
-			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+			okfg, fgColor := RGB2VGAFg(fr, fg, fb)
+			okbg, bgColor := RGB2VGABg(br, bg, bb)
 
-			if lastBgCode != bgCode {
-				_, err = w.Write([]byte(bgCode))
-				if err != nil {
-					return err
-				}
-				lastBgCode = bgCode
-			}
-
-			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-			if fr == br &&
-				fg == bg &&
-				fb == bb {
-				_, err = w.Write([]byte(" "))
+			if okfg && okbg {
+				s := fmt.Sprintf("\033[%d;%dm▀", fgColor, bgColor)
+				_, err = w.Write([]byte(s))
 				if err != nil {
 					return err
 				}
 				continue
 			}
-			//-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-			if lastFgCode != fgCode {
-				_, err = w.Write([]byte(fgCode))
-				if err != nil {
-					return err
-				}
-				lastFgCode = fgCode
+			fgCode = fmt.Sprintf("\033[38;2;%d;%d;%dm",
+				uint8(fr), uint8(fg), uint8(fb))
+			bgCode = fmt.Sprintf("\033[48;2;%d;%d;%dm",
+				uint8(br), uint8(bg), uint8(bb))
+
+			/////////////////////////////////
+			_, err = w.Write([]byte(bgCode))
+			if err != nil {
+				return err
 			}
+			_, err = w.Write([]byte(fgCode))
+			if err != nil {
+				return err
+			}
+			/////////////////////////////////
 
 			_, err = w.Write([]byte("▀"))
 			if err != nil {
@@ -171,8 +266,8 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 		if err != nil {
 			return err
 		}
-		lastFgCode = ""
-		lastBgCode = ""
+		//lastFgCode = ""
+		//lastBgCode = ""
 	}
 	return nil
 }
