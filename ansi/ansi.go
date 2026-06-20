@@ -1,4 +1,4 @@
-package pngtoansi
+package ansi
 
 /*
 SGR escape sequences used by the renderer:

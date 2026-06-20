@@ -9,13 +9,13 @@ For best results it is necessary to use a font compatible with characters "█",
 ### Install as a Utility
 
 ```console
-go install github.com/crgimenes/pngtoansi/cmd/pngtoansi 
+go install github.com/crgimenes/pngtoansi@latest
 ```
 
 ### Install as a Golang package
 
 ```console
-go get github.com/crgimenes/pngtoansi
+go get github.com/crgimenes/pngtoansi/ansi
 ```
 
 ## Examples
@@ -35,9 +35,10 @@ pngtoansi -f ./examples/test-01.png -rgb FFFFFF
 ### Golang example
 
 ```golang
-...
-p := pngtoansi.New()
-err = p.PrintFile("./examples/gopher.png", "FFFFFF")
+import "github.com/crgimenes/pngtoansi/ansi"
+
+p := ansi.New()
+err := p.PrintFile("./examples/gopher.png", "FFFFFF")
 if err != nil {
 	fmt.Println(err)
 	return

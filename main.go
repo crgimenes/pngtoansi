@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/crgimenes/pngtoansi"
+	"github.com/crgimenes/pngtoansi/ansi"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	p := pngtoansi.New()
+	p := ansi.New()
 	err := p.PrintFile(*fileName, *rgb)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

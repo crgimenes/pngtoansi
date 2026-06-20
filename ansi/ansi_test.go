@@ -1,4 +1,4 @@
-package pngtoansi
+package ansi
 
 import (
 	"bytes"
@@ -209,10 +209,10 @@ func TestImgToANSI_FprintFile(t *testing.T) {
 		defaultRGB string
 		wantErr    bool
 	}{
-		{name: "success", fileName: "./examples/debian.png"},
-		{name: "success with rgb", fileName: "./examples/debian.png", defaultRGB: "FFFFFF"},
-		{name: "success with transparency", fileName: "./examples/test-01.png", defaultRGB: "FFFFFF"},
-		{name: "invalid rgb", fileName: "./examples/test-01.png", defaultRGB: "not hexa", wantErr: true},
+		{name: "success", fileName: "../examples/debian.png"},
+		{name: "success with rgb", fileName: "../examples/debian.png", defaultRGB: "FFFFFF"},
+		{name: "success with transparency", fileName: "../examples/test-01.png", defaultRGB: "FFFFFF"},
+		{name: "invalid rgb", fileName: "../examples/test-01.png", defaultRGB: "not hexa", wantErr: true},
 		{name: "missing file", fileName: "does-not-exist.png", wantErr: true},
 	}
 	for _, tt := range tests {
@@ -232,7 +232,7 @@ func TestImgToANSI_FprintFile(t *testing.T) {
 
 func ExampleImgToANSI_PrintFile() {
 	p := New()
-	err := p.PrintFile("./examples/gopher.png", "FFFFFF")
+	err := p.PrintFile("../examples/gopher.png", "FFFFFF")
 	if err != nil {
 		fmt.Println(err)
 	}

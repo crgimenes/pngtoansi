@@ -8,8 +8,8 @@
 *.so
 *.dylib
 
-# Compiled CLI binary (built into its own package directory)
-/cmd/pngtoansi/pngtoansi
+# Compiled CLI binary (built at the repo root)
+/pngtoansi
 
 # Test binary, built with `go test -c`
 *.test
