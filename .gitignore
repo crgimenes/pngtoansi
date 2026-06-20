@@ -8,6 +8,9 @@
 *.so
 *.dylib
 
+# Compiled CLI binary (built into its own package directory)
+/cmd/pngtoansi/pngtoansi
+
 # Test binary, built with `go test -c`
 *.test
 
