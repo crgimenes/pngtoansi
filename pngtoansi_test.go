@@ -17,7 +17,8 @@ func opaque(r, g, b uint8) color.Color {
 }
 
 func TestNew(t *testing.T) {
-	if got := New(); *got != (ImgToANSI{}) {
+	got := New()
+	if *got != (ImgToANSI{}) {
 		t.Errorf("New() = %+v, want zero value", *got)
 	}
 }
@@ -123,7 +124,8 @@ func TestFprint(t *testing.T) {
 				m.Set(0, 0, opaque(255, 0, 0)) // not a VGA color
 				// bottom pixel left transparent (alpha 0)
 				p := New()
-				if err := p.SetRGB("0000FF"); err != nil {
+				err := p.SetRGB("0000FF")
+				if err != nil {
 					t.Fatal(err)
 				}
 				return m, p
@@ -137,7 +139,8 @@ func TestFprint(t *testing.T) {
 				m.Set(0, 0, opaque(255, 255, 255)) // bright white -> fg 97
 				// bottom transparent -> default white -> bg 107
 				p := New()
-				if err := p.SetRGB("FFFFFF"); err != nil {
+				err := p.SetRGB("FFFFFF")
+				if err != nil {
 					t.Fatal(err)
 				}
 				return m, p
@@ -152,7 +155,8 @@ func TestFprint(t *testing.T) {
 				m.Set(0, 0, color.NRGBA{R: 0, G: 0, B: 0, A: 128})
 				m.Set(0, 1, opaque(0, 0, 0)) // VGA black, but fg is not VGA
 				p := New()
-				if err := p.SetRGB("FFFFFF"); err != nil {
+				err := p.SetRGB("FFFFFF")
+				if err != nil {
 					t.Fatal(err)
 				}
 				return m, p
@@ -186,10 +190,12 @@ func TestFprint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			img, p := tt.setup()
 			var buf bytes.Buffer
-			if err := p.Fprint(&buf, img); err != nil {
+			err := p.Fprint(&buf, img)
+			if err != nil {
 				t.Fatalf("Fprint() error = %v", err)
 			}
-			if got := buf.String(); got != tt.want {
+			got := buf.String()
+			if got != tt.want {
 				t.Errorf("Fprint() =\n%q\nwant\n%q", got, tt.want)
 			}
 		})
@@ -226,7 +232,8 @@ func TestImgToANSI_FprintFile(t *testing.T) {
 
 func ExampleImgToANSI_PrintFile() {
 	p := New()
-	if err := p.PrintFile("./examples/gopher.png", "FFFFFF"); err != nil {
+	err := p.PrintFile("./examples/gopher.png", "FFFFFF")
+	if err != nil {
 		fmt.Println(err)
 	}
 }

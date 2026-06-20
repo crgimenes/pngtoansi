@@ -46,7 +46,8 @@ func New() *ImgToANSI {
 // closer closes c and reports any failure on stderr so that it never corrupts
 // the ANSI output written to stdout.
 func closer(c io.Closer) {
-	if err := c.Close(); err != nil {
+	err := c.Close()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "error closing file:", err)
 	}
 }
@@ -74,7 +75,8 @@ func (p *ImgToANSI) PrintFile(fileName, defaultRGB string) error {
 // fast.
 func (p *ImgToANSI) FprintFile(w io.Writer, fileName, defaultRGB string) error {
 	if defaultRGB != "" {
-		if err := p.SetRGB(defaultRGB); err != nil {
+		err := p.SetRGB(defaultRGB)
+		if err != nil {
 			return err
 		}
 	}

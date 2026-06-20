@@ -20,7 +20,8 @@ func main() {
 	}
 
 	p := pngtoansi.New()
-	if err := p.PrintFile(*fileName, *rgb); err != nil {
+	err := p.PrintFile(*fileName, *rgb)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
