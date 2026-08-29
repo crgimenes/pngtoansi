@@ -228,11 +228,11 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 			bgCode, okBg := RGB2VGABg(br, bg, bb)
 
 			if okFg && okBg {
-				fmt.Fprintf(bw, "\033[%d;%dm▀", fgCode, bgCode)
+				_, _ = fmt.Fprintf(bw, "\033[%d;%dm▀", fgCode, bgCode)
 				continue
 			}
 
-			fmt.Fprintf(bw, "\033[48;2;%d;%d;%dm\033[38;2;%d;%d;%dm▀",
+			_, _ = fmt.Fprintf(bw, "\033[48;2;%d;%d;%dm\033[38;2;%d;%d;%dm▀",
 				br, bg, bb, fr, fg, fb)
 		}
 		// Error intentionally discarded: bufio.Writer records the first write

@@ -2,7 +2,7 @@
 
 Convert PNG image to ANSI art using UTF-8 characters.
 
-For best results it is necessary to use a font compatible with characters "█", "▀", "▄", I recommend the [source code pro](https://github.com/adobe-fonts/source-code-pro) fount or even better use the [3270font](https://github.com/rbanffy/3270font).
+For best results it is necessary to use a font compatible with characters "█", "▀", "▄", I recommend the [source code pro](https://github.com/adobe-fonts/source-code-pro) font or even better use the [3270font](https://github.com/rbanffy/3270font).
 
 ## Install
 
@@ -30,6 +30,12 @@ Adjusted the background color. It is possible to change the color used to replac
 
 ```console
 pngtoansi -f ./examples/test-01.png -rgb FFFFFF
+```
+
+Reading from stdin is supported with `-f -`:
+
+```console
+magick photo.jpg -resize 160x png:- | pngtoansi -f -
 ```
 
 ### Golang example
