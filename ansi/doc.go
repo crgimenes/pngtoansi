@@ -8,4 +8,10 @@
 // glyph and colors chosen to reuse the terminal state and keep the output
 // small. If the image has an odd number of rows, the missing bottom row is
 // rendered with the configured default color.
+//
+// In Sprite mode the output is relocatable: transparent cells (alpha below
+// 50%, or an exact TransparentKey match) are skipped with cursor movement so
+// the screen content behind them stays visible, and rows end with cursor
+// repositioning instead of a line break, so the image can be drawn at any
+// cursor position.
 package ansi

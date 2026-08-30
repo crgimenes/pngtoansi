@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"fmt"
 	"image"
+	"image/color"
 	"image/png"
 	"io"
 	"os"
@@ -37,6 +38,14 @@ type ImgToANSI struct {
 	// DefaultColor is the opaque background that transparent and partially
 	// transparent pixels are composited over.
 	DefaultColor RGB
+	// Sprite selects relocatable output: transparent cells are skipped
+	// with cursor movement so whatever is already on screen shows
+	// through, and rows end with cursor repositioning instead of a line
+	// break, so the image can be drawn at any cursor position.
+	Sprite bool
+	// TransparentKey, when non-nil, additionally marks every pixel of
+	// exactly this color as transparent (chroma key).
+	TransparentKey *RGB
 }
 
 // New creates a new ImgToANSI instance.
@@ -53,16 +62,28 @@ func closer(c io.Closer) {
 	}
 }
 
+// ParseRGB parses a hexadecimal RGB string such as "FFFFFF".
+func ParseRGB(rgb string) (RGB, error) {
+	x, err := strconv.ParseUint(rgb, 16, 24)
+	if err != nil {
+		return RGB{}, err
+	}
+
+	return RGB{
+		R: uint8((x >> 16) & 0xff),
+		G: uint8((x >> 8) & 0xff),
+		B: uint8(x & 0xff),
+	}, nil
+}
+
 // SetRGB sets DefaultColor from a hexadecimal RGB string such as "FFFFFF".
 func (p *ImgToANSI) SetRGB(rgb string) error {
-	x, err := strconv.ParseUint(rgb, 16, 24)
+	c, err := ParseRGB(rgb)
 	if err != nil {
 		return err
 	}
 
-	p.DefaultColor.R = uint8((x >> 16) & 0xff)
-	p.DefaultColor.G = uint8((x >> 8) & 0xff)
-	p.DefaultColor.B = uint8(x & 0xff)
+	p.DefaultColor = c
 	return nil
 }
 
@@ -115,6 +136,63 @@ func (p *ImgToANSI) pxColor(x, y int, img image.Image) RGB {
 		G: overChannel(cg, ca, p.DefaultColor.G),
 		B: overChannel(cb, ca, p.DefaultColor.B),
 	}
+}
+
+// transparentPx reports whether the pixel at (x, y) is transparent: alpha
+// below 50%, or an exact TransparentKey color match. Coordinates outside the
+// image bounds are transparent.
+func (p *ImgToANSI) transparentPx(x, y int, img image.Image) bool {
+	c := color.NRGBAModel.Convert(img.At(x, y)).(color.NRGBA)
+	if c.A < 0x80 {
+		return true
+	}
+	if p.TransparentKey == nil {
+		return false
+	}
+
+	k := *p.TransparentKey
+	return c.R == k.R && c.G == k.G && c.B == k.B
+}
+
+// Cell describes one terminal cell of the rendered image: the colors of its
+// two vertically adjacent pixels, composited over DefaultColor, and whether
+// the whole cell is transparent. A cell is transparent only when both of its
+// pixels are; a terminal cell cannot be half skipped, so a cell with one
+// opaque pixel is drawn with the transparent half filled with DefaultColor.
+type Cell struct {
+	Top, Bottom RGB
+	Transparent bool
+}
+
+// Grid returns the terminal cell grid of img: one cell row per two pixel
+// rows, applying the DefaultColor compositing and the transparency rules of
+// transparentPx. For images with an odd height the missing bottom pixels are
+// transparent.
+func (p *ImgToANSI) Grid(img image.Image) [][]Cell {
+	bound := img.Bounds()
+	rows := make([][]Cell, 0, (bound.Dy()+1)/2)
+
+	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
+		row := make([]Cell, 0, bound.Dx())
+		for x := bound.Min.X; x < bound.Max.X; x++ {
+			topT := p.transparentPx(x, y, img)
+			botT := p.transparentPx(x, y+1, img)
+			c := Cell{Transparent: topT && botT}
+			if !c.Transparent {
+				c.Top = p.pxColor(x, y, img)
+				c.Bottom = p.pxColor(x, y+1, img)
+				if topT {
+					c.Top = p.DefaultColor
+				}
+				if botT {
+					c.Bottom = p.DefaultColor
+				}
+			}
+			row = append(row, c)
+		}
+		rows = append(rows, row)
+	}
+	return rows
 }
 
 // overChannel composites one premultiplied 16-bit source channel over an
@@ -280,6 +358,46 @@ func (s *sgrState) changes(fg, bg RGB) int {
 	return n
 }
 
+// place picks the glyph that draws a cell showing top over bot with the
+// fewest SGR changes: a uniform cell reuses the current background (space) or
+// foreground (█) when possible, a split cell becomes "▀" or "▄", whichever
+// reuses more of the current state. It updates the state and reports which
+// colors must be emitted before the glyph.
+func (s *sgrState) place(top, bot RGB) (glyph string, setFg, setBg bool, fg, bg RGB) {
+	switch {
+	case top == bot && s.hasBg(top):
+		return " ", false, false, RGB{}, RGB{}
+	case top == bot && s.hasFg(top):
+		return "█", false, false, RGB{}, RGB{}
+	case top == bot:
+		s.bg = top
+		s.bgSet = true
+		return " ", false, true, RGB{}, top
+	case s.changes(bot, top) < s.changes(top, bot):
+		// "▄" shows the background on top and the foreground at the
+		// bottom, reusing more of the current state than "▀" would.
+		glyph = "▄"
+		fg = bot
+		bg = top
+	default:
+		glyph = "▀"
+		fg = top
+		bg = bot
+	}
+
+	setFg = !s.hasFg(fg)
+	setBg = !s.hasBg(bg)
+	if setFg {
+		s.fg = fg
+		s.fgSet = true
+	}
+	if setBg {
+		s.bg = bg
+		s.bgSet = true
+	}
+	return glyph, setFg, setBg, fg, bg
+}
+
 // Fprint writes the ANSI rendering of img to w.
 //
 // Each output cell encodes two vertically adjacent pixels. The glyph is chosen
@@ -291,6 +409,10 @@ func (s *sgrState) changes(fg, bg RGB) int {
 // consumed two pixels at a time, so for images with an odd height the missing
 // bottom row falls back to DefaultColor.
 func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
+	if p.Sprite {
+		return p.fprintSprite(w, img)
+	}
+
 	bw := bufio.NewWriter(w)
 	bound := img.Bounds()
 	buf := make([]byte, 0, 64)
@@ -301,53 +423,72 @@ func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 			top := p.pxColor(x, y, img)
 			bot := p.pxColor(x, y+1, img)
 
-			var glyph string
-			var setFg, setBg bool
-			var fg, bg RGB
-			switch {
-			case top == bot && st.hasBg(top):
-				glyph = " "
-			case top == bot && st.hasFg(top):
-				glyph = "█"
-			case top == bot:
-				glyph = " "
-				setBg = true
-				bg = top
-			case st.changes(bot, top) < st.changes(top, bot):
-				// "▄" shows the background on top and the foreground
-				// at the bottom, reusing more of the current state
-				// than "▀" would.
-				glyph = "▄"
-				fg = bot
-				bg = top
-				setFg = !st.hasFg(fg)
-				setBg = !st.hasBg(bg)
-			default:
-				glyph = "▀"
-				fg = top
-				bg = bot
-				setFg = !st.hasFg(fg)
-				setBg = !st.hasBg(bg)
-			}
-
+			glyph, setFg, setBg, fg, bg := st.place(top, bot)
 			buf = appendSGR(buf[:0], setFg, fg, setBg, bg)
 			buf = append(buf, glyph...)
 			// Error intentionally discarded: bufio.Writer records the
 			// first write error and replays it from Flush below.
 			_, _ = bw.Write(buf)
-
-			if setFg {
-				st.fg = fg
-				st.fgSet = true
-			}
-			if setBg {
-				st.bg = bg
-				st.bgSet = true
-			}
 		}
 		_, _ = bw.Write(resetln)
 	}
 
 	// A single Flush check covers every buffered write above.
+	return bw.Flush()
+}
+
+// appendMove appends the CSI sequence moving the cursor n cells in direction
+// dir ('C' forward, 'D' back, 'B' down), omitting the count when it is 1.
+func appendMove(buf []byte, n int, dir byte) []byte {
+	buf = append(buf, 0x1b, '[')
+	if n > 1 {
+		buf = strconv.AppendInt(buf, int64(n), 10)
+	}
+	return append(buf, dir)
+}
+
+// fprintSprite writes the relocatable rendering of img to w: transparent
+// cells become cursor movement so the screen content behind them survives,
+// and every row ends by returning to the origin column and moving down one
+// line, so the image draws correctly from any cursor position. SGR state
+// spans the whole image (cursor movement does not disturb it) and a single
+// reset is emitted at the end.
+func (p *ImgToANSI) fprintSprite(w io.Writer, img image.Image) error {
+	bw := bufio.NewWriter(w)
+	buf := make([]byte, 0, 64)
+	var st sgrState
+
+	for _, row := range p.Grid(img) {
+		adv := 0
+		skip := 0
+		for _, c := range row {
+			if c.Transparent {
+				skip++
+				continue
+			}
+			if skip > 0 {
+				// Error intentionally discarded here and below:
+				// bufio.Writer records the first write error and
+				// replays it from Flush.
+				_, _ = bw.Write(appendMove(buf[:0], skip, 'C'))
+				adv += skip
+				skip = 0
+			}
+
+			glyph, setFg, setBg, fg, bg := st.place(c.Top, c.Bottom)
+			buf = appendSGR(buf[:0], setFg, fg, setBg, bg)
+			buf = append(buf, glyph...)
+			_, _ = bw.Write(buf)
+			adv++
+		}
+		// Trailing transparent cells are never drawn, so returning to
+		// the origin column only spans the distance actually advanced.
+		if adv > 0 {
+			_, _ = bw.Write(appendMove(buf[:0], adv, 'D'))
+		}
+		_, _ = bw.Write(appendMove(buf[:0], 1, 'B'))
+	}
+
+	_, _ = bw.Write([]byte("\033[m"))
 	return bw.Flush()
 }

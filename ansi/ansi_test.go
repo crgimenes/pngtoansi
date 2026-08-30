@@ -258,6 +258,172 @@ func TestFprint(t *testing.T) {
 	}
 }
 
+// transparent returns a fully transparent pixel.
+func transparent() color.Color {
+	return color.NRGBA{}
+}
+
+// TestFprintSprite pins the exact relocatable output: cursor movement over
+// transparent cells, row endings that return to the origin column, SGR state
+// spanning the whole image, and the single trailing reset.
+func TestFprintSprite(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func() (image.Image, *ImgToANSI)
+		want  string
+	}{
+		{
+			name: "opaque cells end row with cursor repositioning",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 2, 2))
+				m.Set(0, 0, opaque(1, 2, 3))
+				m.Set(0, 1, opaque(4, 5, 6))
+				m.Set(1, 0, opaque(1, 2, 3))
+				m.Set(1, 1, opaque(4, 5, 6))
+				p := New()
+				p.Sprite = true
+				return m, p
+			},
+			want: "\033[38;2;1;2;3;48;2;4;5;6m▀▀\033[2D\033[B\033[m",
+		},
+		{
+			name: "transparent cell in the middle becomes cursor forward",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 3, 2))
+				for _, x := range []int{0, 2} {
+					m.Set(x, 0, opaque(1, 2, 3))
+					m.Set(x, 1, opaque(1, 2, 3))
+				}
+				m.Set(1, 0, transparent())
+				m.Set(1, 1, transparent())
+				p := New()
+				p.Sprite = true
+				return m, p
+			},
+			want: "\033[48;2;1;2;3m \033[C \033[3D\033[B\033[m",
+		},
+		{
+			name: "leading run skipped with one movement, trailing not drawn",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 4, 2))
+				m.Set(2, 0, opaque(1, 2, 3))
+				m.Set(2, 1, opaque(1, 2, 3))
+				// columns 0, 1 and 3 fully transparent
+				p := New()
+				p.Sprite = true
+				return m, p
+			},
+			want: "\033[2C\033[48;2;1;2;3m \033[3D\033[B\033[m",
+		},
+		{
+			name: "fully transparent row only moves down",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 2, 4))
+				m.Set(0, 2, opaque(1, 2, 3))
+				m.Set(0, 3, opaque(1, 2, 3))
+				m.Set(1, 2, opaque(1, 2, 3))
+				m.Set(1, 3, opaque(1, 2, 3))
+				p := New()
+				p.Sprite = true
+				return m, p
+			},
+			want: "\033[B\033[48;2;1;2;3m  \033[2D\033[B\033[m",
+		},
+		{
+			name: "sgr state survives rows and movement",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 1, 4))
+				for y := range 4 {
+					m.Set(0, y, opaque(1, 2, 3))
+				}
+				p := New()
+				p.Sprite = true
+				return m, p
+			},
+			want: "\033[48;2;1;2;3m \033[D\033[B \033[D\033[B\033[m",
+		},
+		{
+			name: "chroma key marks pixels transparent",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 2, 2))
+				m.Set(0, 0, opaque(0, 0, 0))
+				m.Set(0, 1, opaque(0, 0, 0))
+				m.Set(1, 0, opaque(1, 2, 3))
+				m.Set(1, 1, opaque(1, 2, 3))
+				p := New()
+				p.Sprite = true
+				key := RGB{}
+				p.TransparentKey = &key
+				return m, p
+			},
+			want: "\033[C\033[48;2;1;2;3m \033[2D\033[B\033[m",
+		},
+		{
+			name: "half transparent cell fills with default color",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewNRGBA(image.Rect(0, 0, 1, 2))
+				m.Set(0, 0, opaque(1, 2, 3))
+				m.Set(0, 1, transparent())
+				p := New()
+				p.Sprite = true
+				err := p.SetRGB("FFFFFF")
+				if err != nil {
+					t.Fatal(err)
+				}
+				return m, p
+			},
+			want: "\033[38;2;1;2;3;107m▀\033[D\033[B\033[m",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			img, p := tt.setup()
+			var buf bytes.Buffer
+			err := p.Fprint(&buf, img)
+			if err != nil {
+				t.Fatalf("Fprint() error = %v", err)
+			}
+			got := buf.String()
+			if got != tt.want {
+				t.Errorf("Fprint() =\n%q\nwant\n%q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGrid(t *testing.T) {
+	m := image.NewNRGBA(image.Rect(0, 0, 2, 3))
+	m.Set(0, 0, opaque(1, 2, 3))
+	m.Set(0, 1, opaque(4, 5, 6))
+	m.Set(0, 2, opaque(7, 8, 9)) // odd height: bottom half transparent
+	m.Set(1, 0, transparent())
+	m.Set(1, 1, transparent())
+	m.Set(1, 2, transparent())
+	p := New()
+
+	got := p.Grid(m)
+	want := [][]Cell{
+		{
+			{Top: RGB{1, 2, 3}, Bottom: RGB{4, 5, 6}},
+			{Transparent: true},
+		},
+		{
+			{Top: RGB{7, 8, 9}, Bottom: RGB{}},
+			{Transparent: true},
+		},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("Grid() rows = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		for j := range want[i] {
+			if got[i][j] != want[i][j] {
+				t.Errorf("Grid()[%d][%d] = %+v, want %+v", i, j, got[i][j], want[i][j])
+			}
+		}
+	}
+}
+
 func TestImgToANSI_FprintFile(t *testing.T) {
 	tests := []struct {
 		name       string

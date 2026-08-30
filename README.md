@@ -38,6 +38,22 @@ Reading from stdin is supported with `-f -`:
 magick photo.jpg -resize 160x png:- | pngtoansi -f -
 ```
 
+### Sprite mode
+
+With `-sprite` the output is relocatable: transparent cells (alpha, or a color
+given with `-transparent`) are skipped with cursor movement so whatever is
+already on screen stays visible, and rows end with cursor repositioning
+instead of a line break. The image can then be drawn at any position:
+
+```console
+pngtoansi -f sprite.png -sprite > sprite.ans
+printf '\033[10;40H'; cat sprite.ans
+```
+
+```console
+pngtoansi -f logo.png -sprite -transparent 000000
+```
+
 ### Golang example
 
 ```golang
