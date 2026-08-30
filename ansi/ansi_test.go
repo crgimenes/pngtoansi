@@ -424,6 +424,67 @@ func TestGrid(t *testing.T) {
 	}
 }
 
+// TestFprintXPM pins the exact XPM3 output: scan-order palette, the None
+// entry as spaces, and the C scaffolding that makes the file includable.
+func TestFprintXPM(t *testing.T) {
+	m := image.NewNRGBA(image.Rect(0, 0, 2, 2))
+	m.Set(0, 0, opaque(255, 0, 0))
+	m.Set(1, 0, transparent())
+	m.Set(0, 1, opaque(255, 0, 0))
+	m.Set(1, 1, opaque(0, 0, 255))
+
+	var buf bytes.Buffer
+	err := New().FprintXPM(&buf, m, "sprite")
+	if err != nil {
+		t.Fatalf("FprintXPM() error = %v", err)
+	}
+
+	want := "/* XPM */\n" +
+		"static const char *sprite[] = {\n" +
+		"\"2 2 3 1\",\n" +
+		"\" \tc None\",\n" +
+		"\".\tc #FF0000\",\n" +
+		"\"+\tc #0000FF\",\n" +
+		"\". \",\n" +
+		"\".+\"};\n"
+	got := buf.String()
+	if got != want {
+		t.Errorf("FprintXPM() =\n%s\nwant\n%s", got, want)
+	}
+}
+
+// TestFprintXPM_TwoCharsPerPixel checks palette codes when the color count
+// exceeds the single-character charset.
+func TestFprintXPM_TwoCharsPerPixel(t *testing.T) {
+	m := image.NewNRGBA(image.Rect(0, 0, 10, 8))
+	for y := range 8 {
+		for x := range 10 {
+			m.Set(x, y, opaque(uint8(y*10+x), 0, 100))
+		}
+	}
+
+	var buf bytes.Buffer
+	err := New().FprintXPM(&buf, m, "grad")
+	if err != nil {
+		t.Fatalf("FprintXPM() error = %v", err)
+	}
+
+	lines := bytes.Split(buf.Bytes(), []byte("\n"))
+	wantHeader := `"10 8 80 2",`
+	if string(lines[2]) != wantHeader {
+		t.Errorf("header = %s, want %s", lines[2], wantHeader)
+	}
+	wantFirst := "\"..\tc #000064\","
+	if string(lines[3]) != wantFirst {
+		t.Errorf("first color = %s, want %s", lines[3], wantFirst)
+	}
+	// Entry 77 wraps into the second character position.
+	want77 := "\"+.\tc #4D0064\","
+	if string(lines[80]) != want77 {
+		t.Errorf("color 77 = %s, want %s", lines[80], want77)
+	}
+}
+
 func TestImgToANSI_FprintFile(t *testing.T) {
 	tests := []struct {
 		name       string

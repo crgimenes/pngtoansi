@@ -54,6 +54,16 @@ printf '\033[10;40H'; cat sprite.ans
 pngtoansi -f logo.png -sprite -transparent 000000
 ```
 
+### XPM output
+
+`-o xpm` writes the image as XPM3 (X PixMap) instead of ANSI: a text format
+that doubles as includable C source, with transparent pixels (alpha, or the
+`-transparent` color) mapped to the `None` entry:
+
+```console
+pngtoansi -f sprite.png -o xpm > sprite.xpm
+```
+
 ### Golang example
 
 ```golang
