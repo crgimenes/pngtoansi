@@ -8,8 +8,9 @@ SGR escape sequences used by the renderer:
 	\033[<fg>;<bg>m    4-bit VGA foreground/background color
 	\033[m             reset all attributes
 
-Cell glyphs: "█", "▀", "▄", " ". This renderer uses "▀" (upper half block):
-the upper half takes the foreground color, the lower half the background color.
+Cell glyphs: " ", "█", "▀", "▄" — all present in CP437, so the output can be
+transcoded for classic terminals. The glyph for each cell is chosen to reuse
+the colors already set, keeping the output small.
 */
 
 import (
@@ -107,11 +108,13 @@ func (p *ImgToANSI) Print(img image.Image) error {
 // pixels keep their own color, fully transparent pixels (including coordinates
 // outside the image bounds) become DefaultColor, and partially transparent
 // pixels blend the two so anti-aliased edges follow the chosen background.
-func (p *ImgToANSI) pxColor(x, y int, img image.Image) (r, g, b uint8) {
+func (p *ImgToANSI) pxColor(x, y int, img image.Image) RGB {
 	cr, cg, cb, ca := img.At(x, y).RGBA()
-	return overChannel(cr, ca, p.DefaultColor.R),
-		overChannel(cg, ca, p.DefaultColor.G),
-		overChannel(cb, ca, p.DefaultColor.B)
+	return RGB{
+		R: overChannel(cr, ca, p.DefaultColor.R),
+		G: overChannel(cg, ca, p.DefaultColor.G),
+		B: overChannel(cb, ca, p.DefaultColor.B),
+	}
 }
 
 // overChannel composites one premultiplied 16-bit source channel over an
@@ -207,36 +210,141 @@ func RGB2VGABg(r, g, b uint8) (code int, ok bool) {
 	return code + 10, true
 }
 
+// sgrState tracks the colors the terminal currently has set, so that runs of
+// identical colors cost no escape sequences. The zero value means "unknown",
+// the state right after a reset.
+type sgrState struct {
+	fg, bg       RGB
+	fgSet, bgSet bool
+}
+
+func (s *sgrState) hasFg(c RGB) bool {
+	return s.fgSet && s.fg == c
+}
+
+func (s *sgrState) hasBg(c RGB) bool {
+	return s.bgSet && s.bg == c
+}
+
+// appendSGR appends a single CSI sequence setting the foreground and/or
+// background color. Each part uses the compact 4-bit code when the color is an
+// exact VGA palette match and the 24-bit form otherwise.
+func appendSGR(buf []byte, setFg bool, fg RGB, setBg bool, bg RGB) []byte {
+	if !setFg && !setBg {
+		return buf
+	}
+
+	buf = append(buf, 0x1b, '[')
+	if setFg {
+		code, ok := RGB2VGAFg(fg.R, fg.G, fg.B)
+		if ok {
+			buf = strconv.AppendInt(buf, int64(code), 10)
+		} else {
+			buf = append(buf, "38;2;"...)
+			buf = appendRGB(buf, fg)
+		}
+	}
+	if setBg {
+		if setFg {
+			buf = append(buf, ';')
+		}
+		code, ok := RGB2VGABg(bg.R, bg.G, bg.B)
+		if ok {
+			buf = strconv.AppendInt(buf, int64(code), 10)
+		} else {
+			buf = append(buf, "48;2;"...)
+			buf = appendRGB(buf, bg)
+		}
+	}
+	return append(buf, 'm')
+}
+
+func appendRGB(buf []byte, c RGB) []byte {
+	buf = strconv.AppendInt(buf, int64(c.R), 10)
+	buf = append(buf, ';')
+	buf = strconv.AppendInt(buf, int64(c.G), 10)
+	buf = append(buf, ';')
+	return strconv.AppendInt(buf, int64(c.B), 10)
+}
+
+// changes counts the SGR emissions a cell drawn with the given foreground and
+// background would need under the current state.
+func (s *sgrState) changes(fg, bg RGB) int {
+	n := 0
+	if !s.hasFg(fg) {
+		n++
+	}
+	if !s.hasBg(bg) {
+		n++
+	}
+	return n
+}
+
 // Fprint writes the ANSI rendering of img to w.
 //
-// Each output cell encodes two vertically adjacent pixels: the upper pixel as
-// the foreground color and the lower pixel as the background color, joined by
-// the "▀" upper-half-block glyph. When both pixels match the VGA palette
-// exactly the cell uses the compact 4-bit SGR sequence; otherwise it uses
-// 24-bit truecolor. Rows are consumed two pixels at a time, so for images with
-// an odd height the missing bottom row falls back to DefaultColor.
+// Each output cell encodes two vertically adjacent pixels. The glyph is chosen
+// to minimize escape output: a cell whose two pixels share one color becomes a
+// space (background only) or "█" (foreground only), a split cell becomes "▀"
+// or "▄", whichever reuses more of the colors already set. Colors are emitted
+// as one merged SGR sequence, only when they change, using compact 4-bit codes
+// for exact VGA palette matches and 24-bit truecolor otherwise. Rows are
+// consumed two pixels at a time, so for images with an odd height the missing
+// bottom row falls back to DefaultColor.
 func (p *ImgToANSI) Fprint(w io.Writer, img image.Image) error {
 	bw := bufio.NewWriter(w)
 	bound := img.Bounds()
+	buf := make([]byte, 0, 64)
 
 	for y := bound.Min.Y; y < bound.Max.Y; y += 2 {
+		var st sgrState
 		for x := bound.Min.X; x < bound.Max.X; x++ {
-			fr, fg, fb := p.pxColor(x, y, img)
-			br, bg, bb := p.pxColor(x, y+1, img)
+			top := p.pxColor(x, y, img)
+			bot := p.pxColor(x, y+1, img)
 
-			fgCode, okFg := RGB2VGAFg(fr, fg, fb)
-			bgCode, okBg := RGB2VGABg(br, bg, bb)
-
-			if okFg && okBg {
-				_, _ = fmt.Fprintf(bw, "\033[%d;%dm▀", fgCode, bgCode)
-				continue
+			var glyph string
+			var setFg, setBg bool
+			var fg, bg RGB
+			switch {
+			case top == bot && st.hasBg(top):
+				glyph = " "
+			case top == bot && st.hasFg(top):
+				glyph = "█"
+			case top == bot:
+				glyph = " "
+				setBg = true
+				bg = top
+			case st.changes(bot, top) < st.changes(top, bot):
+				// "▄" shows the background on top and the foreground
+				// at the bottom, reusing more of the current state
+				// than "▀" would.
+				glyph = "▄"
+				fg = bot
+				bg = top
+				setFg = !st.hasFg(fg)
+				setBg = !st.hasBg(bg)
+			default:
+				glyph = "▀"
+				fg = top
+				bg = bot
+				setFg = !st.hasFg(fg)
+				setBg = !st.hasBg(bg)
 			}
 
-			_, _ = fmt.Fprintf(bw, "\033[48;2;%d;%d;%dm\033[38;2;%d;%d;%dm▀",
-				br, bg, bb, fr, fg, fb)
+			buf = appendSGR(buf[:0], setFg, fg, setBg, bg)
+			buf = append(buf, glyph...)
+			// Error intentionally discarded: bufio.Writer records the
+			// first write error and replays it from Flush below.
+			_, _ = bw.Write(buf)
+
+			if setFg {
+				st.fg = fg
+				st.fgSet = true
+			}
+			if setBg {
+				st.bg = bg
+				st.bgSet = true
+			}
 		}
-		// Error intentionally discarded: bufio.Writer records the first write
-		// error and replays it from Flush below.
 		_, _ = bw.Write(resetln)
 	}
 

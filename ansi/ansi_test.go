@@ -105,7 +105,7 @@ func TestFprint(t *testing.T) {
 				m.Set(0, 1, opaque(40, 50, 60))
 				return m, New()
 			},
-			want: "\033[48;2;40;50;60m\033[38;2;10;20;30m▀" + resetSeq,
+			want: "\033[38;2;10;20;30;48;2;40;50;60m▀" + resetSeq,
 		},
 		{
 			name: "vga palette cell",
@@ -130,14 +130,16 @@ func TestFprint(t *testing.T) {
 				}
 				return m, p
 			},
-			want: "\033[48;2;0;0;255m\033[38;2;255;0;0m▀" + resetSeq,
+			want: "\033[38;2;255;0;0;48;2;0;0;255m▀" + resetSeq,
 		},
 		{
+			// Both halves end up bright white, so the whole cell is a
+			// space over a 4-bit white background.
 			name: "transparent default matches vga palette",
 			setup: func() (image.Image, *ImgToANSI) {
 				m := image.NewRGBA(image.Rect(0, 0, 1, 2))
-				m.Set(0, 0, opaque(255, 255, 255)) // bright white -> fg 97
-				// bottom transparent -> default white -> bg 107
+				m.Set(0, 0, opaque(255, 255, 255))
+				// bottom transparent -> default white
 				p := New()
 				err := p.SetRGB("FFFFFF")
 				if err != nil {
@@ -145,7 +147,7 @@ func TestFprint(t *testing.T) {
 				}
 				return m, p
 			},
-			want: "\033[97;107m▀" + resetSeq,
+			want: "\033[107m " + resetSeq,
 		},
 		{
 			name: "semi-transparent pixel blends over default",
@@ -161,7 +163,7 @@ func TestFprint(t *testing.T) {
 				}
 				return m, p
 			},
-			want: "\033[48;2;0;0;0m\033[38;2;127;127;127m▀" + resetSeq,
+			want: "\033[38;2;127;127;127;40m▀" + resetSeq,
 		},
 		{
 			name: "odd height falls back to default for bottom row",
@@ -170,7 +172,7 @@ func TestFprint(t *testing.T) {
 				m.Set(0, 0, opaque(10, 20, 30))
 				return m, New() // default color is black
 			},
-			want: "\033[48;2;0;0;0m\033[38;2;10;20;30m▀" + resetSeq,
+			want: "\033[38;2;10;20;30;40m▀" + resetSeq,
 		},
 		{
 			name: "two columns render in order",
@@ -182,8 +184,62 @@ func TestFprint(t *testing.T) {
 				m.Set(1, 1, opaque(10, 11, 12))
 				return m, New()
 			},
-			want: "\033[48;2;7;8;9m\033[38;2;1;2;3m▀" +
-				"\033[48;2;10;11;12m\033[38;2;4;5;6m▀" + resetSeq,
+			want: "\033[38;2;1;2;3;48;2;7;8;9m▀" +
+				"\033[38;2;4;5;6;48;2;10;11;12m▀" + resetSeq,
+		},
+		{
+			// A run of identical cells pays for its colors once.
+			name: "repeated colors emit a single escape",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewRGBA(image.Rect(0, 0, 3, 2))
+				for x := range 3 {
+					m.Set(x, 0, opaque(10, 20, 30))
+					m.Set(x, 1, opaque(40, 50, 60))
+				}
+				return m, New()
+			},
+			want: "\033[38;2;10;20;30;48;2;40;50;60m▀▀▀" + resetSeq,
+		},
+		{
+			// Second cell has the same colors vertically flipped: "▄"
+			// reuses both and needs no escape at all.
+			name: "flipped cell reuses state via lower half block",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewRGBA(image.Rect(0, 0, 2, 2))
+				m.Set(0, 0, opaque(10, 20, 30))
+				m.Set(0, 1, opaque(40, 50, 60))
+				m.Set(1, 0, opaque(40, 50, 60))
+				m.Set(1, 1, opaque(10, 20, 30))
+				return m, New()
+			},
+			want: "\033[38;2;10;20;30;48;2;40;50;60m▀▄" + resetSeq,
+		},
+		{
+			// A uniform cell whose color is already the foreground is
+			// drawn as "█" without touching the background.
+			name: "uniform cell reuses foreground via full block",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewRGBA(image.Rect(0, 0, 2, 2))
+				m.Set(0, 0, opaque(10, 20, 30))
+				m.Set(0, 1, opaque(40, 50, 60))
+				m.Set(1, 0, opaque(10, 20, 30))
+				m.Set(1, 1, opaque(10, 20, 30))
+				return m, New()
+			},
+			want: "\033[38;2;10;20;30;48;2;40;50;60m▀█" + resetSeq,
+		},
+		{
+			// Uniform runs become a background color and spaces.
+			name: "uniform area becomes spaces",
+			setup: func() (image.Image, *ImgToANSI) {
+				m := image.NewRGBA(image.Rect(0, 0, 3, 2))
+				for x := range 3 {
+					m.Set(x, 0, opaque(10, 20, 30))
+					m.Set(x, 1, opaque(10, 20, 30))
+				}
+				return m, New()
+			},
+			want: "\033[48;2;10;20;30m   " + resetSeq,
 		},
 	}
 	for _, tt := range tests {
